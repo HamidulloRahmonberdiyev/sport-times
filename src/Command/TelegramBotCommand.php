@@ -15,27 +15,39 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 
 #[AsCommand(
     name: 'app:telegram-bot',
-    description: 'Sport o\'yin vaqtlari Telegram botini ishga tushiradi (long polling)',
+    description: 'Telegram webhook ni o\'rnatish yoki o\'chirish (xabarlar webhook orqali qayta ishlanadi)',
 )]
 final class TelegramBotCommand extends Command
 {
+    private const WEBHOOK_PATH = '/webhook/telegram';
+
     public function __construct(
         private readonly TelegramBotService $telegramBot,
         #[\Symfony\Component\DependencyInjection\Attribute\Autowire(env: 'TELEGRAM_BOT_TOKEN')]
         private readonly string $botToken,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(env: 'TELEGRAM_WEBHOOK_URL')]
+        private readonly string $webhookBaseUrl,
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire(env: 'DEFAULT_URI')]
+        private readonly string $defaultUri,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addOption(
-            'timeout',
-            't',
-            InputOption::VALUE_OPTIONAL,
-            'Long poll timeout (sekund)',
-            25,
-        );
+        $this
+            ->addOption(
+                'set-webhook',
+                null,
+                InputOption::VALUE_NONE,
+                'Webhook URL ni Telegram ga o\'rnatadi',
+            )
+            ->addOption(
+                'delete-webhook',
+                null,
+                InputOption::VALUE_NONE,
+                'Webhook ni o\'chiradi',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -50,77 +62,51 @@ final class TelegramBotCommand extends Command
             return Command::FAILURE;
         }
 
-        $timeout = (int) $input->getOption('timeout');
-        $offset = 0;
-        $consecutive409 = 0;
-        $max409 = 5;
+        $setWebhook = $input->getOption('set-webhook');
+        $deleteWebhook = $input->getOption('delete-webhook');
 
-        try {
-            $this->telegramBot->deleteWebhook(true);
-        } catch (ExceptionInterface $e) {
-            $io->warning('deleteWebhook xatosi ( davom etiladi ): ' . $e->getMessage());
-        }
-        sleep(2);
-
-        $io->success('Telegram bot ishga tushdi. To\'xtatish uchun Ctrl+C bosing.');
-
-        while (true) {
+        if ($deleteWebhook) {
             try {
-                $updates = $this->telegramBot->getUpdates($offset, $timeout);
-                $consecutive409 = 0;
+                $this->telegramBot->deleteWebhook(true);
+                $io->success('Webhook o\'chirildi.');
             } catch (ExceptionInterface $e) {
-                $msg = $e->getMessage();
-                $is409 = str_contains($msg, '409');
-                if ($is409) {
-                    $consecutive409++;
-                    $io->warning("409 Conflict ({$consecutive409}/{$max409}): boshqa getUpdates yoki webhook. deleteWebhook → 5 s…");
-                    if ($consecutive409 >= $max409) {
-                        $io->error(
-                            "409 {$max409} marta ketma-ket. Bot boshqa joyda ishlayapti.\n\n"
-                            . "• Boshqa terminaldagi app:telegram-bot ni to'xtating (Ctrl+C)\n"
-                            . "• pgrep -af telegram-bot → kill <PID>\n"
-                            . "• Boshqa server/qurilmada shu token ishlatilmasin\n"
-                            . "• Keyin: php bin/console app:telegram-bot"
-                        );
-                        return Command::FAILURE;
-                    }
-                    try {
-                        $this->telegramBot->deleteWebhook(true);
-                    } catch (ExceptionInterface) {
-                        // ignore
-                    }
-                    sleep(5);
-                } else {
-                    $consecutive409 = 0;
-                    $io->warning('getUpdates xatosi: ' . $msg);
-                    sleep(2);
-                }
-                continue;
+                $io->error('Webhook o\'chirishda xato: ' . $e->getMessage());
+                return Command::FAILURE;
             }
-
-            foreach ($updates as $update) {
-                $processed = $this->telegramBot->processUpdate($update);
-                if (null === $processed) {
-                    $offset = max($offset, (int) ($update['update_id'] ?? 0) + 1);
-                    continue;
-                }
-
-                [$nextOffset, $reply] = $processed;
-                $offset = $nextOffset + 1;
-
-                if (\is_array($reply) && isset($reply['chat_id'], $reply['text'])) {
-                    try {
-                        $this->telegramBot->sendMessage(
-                            (int) $reply['chat_id'],
-                            $reply['text'],
-                            false,
-                            $reply['reply_markup'] ?? null
-                        );
-                    } catch (ExceptionInterface $e) {
-                        $io->warning('sendMessage xatosi: ' . $e->getMessage());
-                    }
-                }
-            }
+            return Command::SUCCESS;
         }
+
+        if ($setWebhook) {
+            $baseUrl = $this->webhookBaseUrl !== '' ? $this->webhookBaseUrl : $this->defaultUri;
+            $baseUrl = rtrim($baseUrl, '/');
+            $webhookUrl = $baseUrl . self::WEBHOOK_PATH;
+
+            try {
+                $this->telegramBot->setWebhook($webhookUrl);
+                $io->success('Webhook o\'rnatildi: ' . $webhookUrl);
+                $io->note('Foydalanuvchi xabarlari endi shu URL ga POST qilinadi. Command ishga tushirish shart emas.');
+            } catch (ExceptionInterface $e) {
+                $io->error('Webhook o\'rnatishda xato: ' . $e->getMessage());
+                return Command::FAILURE;
+            }
+            return Command::SUCCESS;
+        }
+
+        $io->title('Telegram bot — webhook rejimi');
+        $io->text([
+            'Foydalanuvchi xabarlari <comment>webhook</comment> orqali qayta ishlanadi (command emas).',
+            '',
+            'Webhook ni o\'rnatish:',
+            '  <info>php bin/console app:telegram-bot --set-webhook</info>',
+            '',
+            'Buning uchun .env da quyidagilardan biri bo\'lishi kerak:',
+            '  • <comment>TELEGRAM_WEBHOOK_URL</comment> — to\'liq asosiy URL (masalan: https://yourdomain.com)',
+            '  • yoki <comment>DEFAULT_URI</comment> — URL (masalan: http://localhost)',
+            '',
+            'Webhook ni o\'chirish:',
+            '  <info>php bin/console app:telegram-bot --delete-webhook</info>',
+        ]);
+
+        return Command::SUCCESS;
     }
 }

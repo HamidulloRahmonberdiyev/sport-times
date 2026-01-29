@@ -9,3 +9,9 @@
 
 controllers:
     resource: routing.controllers
+
+# Telegram webhook: foydalanuvchi xabarlari shu URL ga POST qilinadi
+telegram_webhook:
+    path: /webhook/telegram
+    controller: App\Controller\TelegramWebhookController::handle
+    methods: [POST]

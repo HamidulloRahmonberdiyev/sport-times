@@ -36,7 +36,18 @@ final class TelegramBotService
     }
 
     /**
-     * Webhookni o'chiradi. Long polling ishlatishdan oldin chaqirish kerak (409 oldini olish).
+     * Webhook URL ni Telegram API ga o'rnatadi. Foydalanuvchi xabarlari shu URL ga POST qilinadi.
+     */
+    public function setWebhook(string $webhookUrl): void
+    {
+        $url = self::TELEGRAM_API . $this->botToken . '/setWebhook';
+        $this->httpClient->request('POST', $url, [
+            'json' => ['url' => $webhookUrl],
+        ]);
+    }
+
+    /**
+     * Webhookni o'chiradi (long polling ga o'tish yoki webhook ni bekor qilish uchun).
      */
     public function deleteWebhook(bool $dropPendingUpdates = false): void
     {
