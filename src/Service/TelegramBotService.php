@@ -58,6 +58,23 @@ final class TelegramBotService
     }
 
     /**
+     * Telegram da o'rnatilgan webhook URL va holatini qaytaradi (tekshirish uchun).
+     *
+     * @return array{url: string, has_custom_certificate: bool, pending_update_count: int}
+     */
+    public function getWebhookInfo(): array
+    {
+        $url = self::TELEGRAM_API . $this->botToken . '/getWebhookInfo';
+        $response = $this->httpClient->request('GET', $url);
+        $data = $response->toArray();
+        return [
+            'url' => (string) ($data['result']['url'] ?? ''),
+            'has_custom_certificate' => (bool) ($data['result']['has_custom_certificate'] ?? false),
+            'pending_update_count' => (int) ($data['result']['pending_update_count'] ?? 0),
+        ];
+    }
+
+    /**
      * Yangi xabarlarni long polling orqali olish.
      *
      * @return array<int, array{update_id: int, message?: array{chat: array{id: int}, text?: string}}>

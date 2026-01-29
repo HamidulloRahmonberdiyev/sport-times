@@ -15,3 +15,8 @@ telegram_webhook:
     path: /webhook/telegram
     controller: App\Controller\TelegramWebhookController::handle
     methods: [POST]
+# Telegram ba'zi sozlamalarda /telegram/webhook ishlatiladi — bir xil controller
+telegram_webhook_alt:
+    path: /telegram/webhook
+    controller: App\Controller\TelegramWebhookController::handle
+    methods: [POST]

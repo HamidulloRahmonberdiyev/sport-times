@@ -47,6 +47,12 @@ final class TelegramBotCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'Webhook ni o\'chiradi',
+            )
+            ->addOption(
+                'info',
+                null,
+                InputOption::VALUE_NONE,
+                'Telegram da o\'rnatilgan webhook URL ni ko\'rsatadi',
             );
     }
 
@@ -64,6 +70,28 @@ final class TelegramBotCommand extends Command
 
         $setWebhook = $input->getOption('set-webhook');
         $deleteWebhook = $input->getOption('delete-webhook');
+        $info = $input->getOption('info');
+
+        if ($info) {
+            try {
+                $webhookInfo = $this->telegramBot->getWebhookInfo();
+                $io->title('Webhook ma\'lumoti');
+                $io->table(
+                    ['Parametr', 'Qiymat'],
+                    [
+                        ['URL', $webhookInfo['url'] !== '' ? $webhookInfo['url'] : '(o\'rnatilmagan)'],
+                        ['Pending updates', (string) $webhookInfo['pending_update_count']],
+                    ]
+                );
+                if ($webhookInfo['url'] !== '' && !str_starts_with($webhookInfo['url'], 'https://')) {
+                    $io->warning('Telegram webhook uchun HTTPS talab qiladi. HTTP faqat localhost uchun ishlashi mumkin.');
+                }
+            } catch (ExceptionInterface $e) {
+                $io->error('Webhook ma\'lumotini olishda xato: ' . $e->getMessage());
+                return Command::FAILURE;
+            }
+            return Command::SUCCESS;
+        }
 
         if ($deleteWebhook) {
             try {
@@ -80,6 +108,13 @@ final class TelegramBotCommand extends Command
             $baseUrl = $this->webhookBaseUrl !== '' ? $this->webhookBaseUrl : $this->defaultUri;
             $baseUrl = rtrim($baseUrl, '/');
             $webhookUrl = $baseUrl . self::WEBHOOK_PATH;
+
+            if (!str_starts_with($webhookUrl, 'https://') && !str_starts_with($webhookUrl, 'http://127.0.0.1')) {
+                $io->warning(
+                    'Telegram webhook uchun odatda HTTPS kerak. Domain internetdan ochiq va SSL bo\'lishi kerak. '
+                    . 'Local test uchun ngrok ishlatishingiz mumkin.'
+                );
+            }
 
             try {
                 $this->telegramBot->setWebhook($webhookUrl);
@@ -105,6 +140,9 @@ final class TelegramBotCommand extends Command
             '',
             'Webhook ni o\'chirish:',
             '  <info>php bin/console app:telegram-bot --delete-webhook</info>',
+            '',
+            'O\'rnatilgan webhook URL ni tekshirish:',
+            '  <info>php bin/console app:telegram-bot --info</info>',
         ]);
 
         return Command::SUCCESS;
