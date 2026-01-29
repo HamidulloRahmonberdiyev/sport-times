@@ -109,11 +109,15 @@ final class TelegramBotCommand extends Command
             $baseUrl = rtrim($baseUrl, '/');
             $webhookUrl = $baseUrl . self::WEBHOOK_PATH;
 
-            if (!str_starts_with($webhookUrl, 'https://') && !str_starts_with($webhookUrl, 'http://127.0.0.1')) {
-                $io->warning(
-                    'Telegram webhook uchun odatda HTTPS kerak. Domain internetdan ochiq va SSL bo\'lishi kerak. '
-                    . 'Local test uchun ngrok ishlatishingiz mumkin.'
+            if (!str_starts_with($webhookUrl, 'https://')) {
+                $io->error(
+                    'Telegram webhook uchun FAQAT HTTPS qabul qiladi. HTTP 400 xato beradi.'
+                    . "\n\n"
+                    . '.env da TELEGRAM_WEBHOOK_URL ni HTTPS ga o\'rnating, masalan:'
+                    . "\n  TELEGRAM_WEBHOOK_URL=https://apisportimes.unicrm.org"
+                    . "\n\nHozirgi URL: " . $webhookUrl
                 );
+                return Command::FAILURE;
             }
 
             try {
