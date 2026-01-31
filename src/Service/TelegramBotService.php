@@ -388,47 +388,51 @@ final class TelegramBotService
         return $this->fetchAndFormatEvents($date);
     }
 
-        private function fetchAndFormatEvents(\DateTimeInterface $date): string
+    private function fetchAndFormatEvents(\DateTimeInterface $date): string
 {
     $games = $this->gameRepo->findByDate($date);
 
-    $uzMonths = ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'];
-    $dateStr = $date->format('j') . '-' . $uzMonths[(int)$date->format('n') - 1] . ' ' . $date->format('Y');
+    $uzMonths = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+    $dateStr = $date->format('j') . '-' . $uzMonths[(int) $date->format('n') - 1] . ' ' . $date->format('Y');
 
-    if (count($games) === 0) {
+    if (\count($games) === 0) {
         return implode("\n", [
             "━━━━━━━━━━━━━━━━━━━━",
             "🏟 <b>TOP-5 LIGA + UCL</b>",
             "📅 {$dateStr}",
-            "⏰ Toshkent vaqti",
+            "⏰ O'zbekiston vaqti",
             "━━━━━━━━━━━━━━━━━━━━",
             "",
-            "❌ Bu sanada o‘yinlar yo‘q",
+            "❌ Bu sanada o‘yinlar topilmadi.",
         ]);
     }
 
+    // Guruhlash: Liga bo‘yicha
     $byLeague = [];
     $tz = new \DateTimeZone('Asia/Tashkent');
     foreach ($games as $g) {
-        $byLeague[$g->getCompetition()->getDisplayName() ?: '—'][] = $g;
+        $league = $g->getCompetition()->getDisplayName() ?: '—';
+        $byLeague[$league][] = $g;
     }
 
     $lines = [
         "━━━━━━━━━━━━━━━━━━━━",
         "🏟 <b>TOP-5 LIGA + UCL</b>",
         "📅 {$dateStr}",
-        "⏰ Toshkent vaqti",
+        "⏰ O'zbekiston vaqti (Toshkent)",
         "━━━━━━━━━━━━━━━━━━━━",
         "",
     ];
 
-    foreach ($byLeague as $league => $leagueGames) {
-        $lines[] = "🏆 <b>{$league}</b>";
+    foreach ($byLeague as $leagueName => $leagueGames) {
+        $lines[] = "🏆 <b>{$leagueName}</b>";
         $lines[] = "──────────────────";
 
         foreach ($leagueGames as $g) {
             $dt = $g->getMatchAtUz() ?? $g->getMatchAt()->setTimezone($tz);
             $time = $this->formatTime($dt->format('H:i'));
+
+            // 🔵 ko‘k vaqt
             $timeBlue = '<a href="tg://time">' . $time . '</a>';
 
             $home = $g->getHomeClub()->getDisplayName();
@@ -436,16 +440,13 @@ final class TelegramBotService
 
             $sh = $g->getHomeScore();
             $sa = $g->getAwayScore();
-            $score = ($sh !== null && $sa !== null) ? " <b>{$sh}:{$sa}</b>" : "";
+            $score = (null !== $sh && null !== $sa)
+                ? " <b>{$sh}:{$sa}</b>"
+                : "";
 
             $status = $this->formatStatus($g->getStatus());
 
-            // 🔥 MOBILE SAFE FORMAT
-            $lines[] = "▸ ⏱ {$timeBlue}";
-            $lines[] = "   ⚽ <b>{$home}</b> — <b>{$away}</b>{$score}";
-            if ($status !== '') {
-                $lines[] = "   {$status}";
-            }
+            $lines[] = "⏱ {$timeBlue} <b>{$home}</b> — <b>{$away}</b>{$score} {$status}";
         }
 
         $lines[] = "";
@@ -454,7 +455,12 @@ final class TelegramBotService
     $lines[] = "━━━━━━━━━━━━━━━━━━━━";
 
     $out = implode("\n", $lines);
-    return mb_strlen($out) > 4000 ? mb_substr($out, 0, 3997) . '…' : $out;
+
+    if (mb_strlen($out) > 4000) {
+        $out = mb_substr($out, 0, 3997) . '…';
+    }
+
+    return $out;
 }
 
     private function formatTime(string $strTime): string
