@@ -9,6 +9,7 @@ use App\Entity\Game;
 use App\Repository\DailyBroadcastLogRepository;
 use App\Repository\GameRepository;
 use App\Repository\TelegramSubscriberRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -70,7 +71,12 @@ final class TelegramNotificationService
         $log->setBroadcastDate($today);
         $log->setSentAt(new \DateTimeImmutable('now', $tz));
         $this->dailyLogRepo->persist($log);
-        $this->em->flush();
+
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException) {
+            // Log for this date already exists (race condition or retry) – treat as success
+        }
     }
 
     /**
