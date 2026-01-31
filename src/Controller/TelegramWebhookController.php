@@ -21,9 +21,14 @@ final class TelegramWebhookController extends AbstractController
 
     /**
      * Telegram webhook: foydalanuvchi xabar yuboradi → javob shu endpoint orqali qaytadi.
+     * GET: route ishlayotganini tekshirish uchun (brauzerda ochilsa 200 "ok" qaytadi).
      */
     public function handle(Request $request): Response
     {
+        if ($request->isMethod('GET')) {
+            return new Response('ok', Response::HTTP_OK, ['Content-Type' => 'text/plain']);
+        }
+
         $body = $request->getContent();
         if ($body === '') {
             $this->logger->warning('Telegram webhook: bo\'sh body');

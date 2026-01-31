@@ -19,4 +19,4 @@ telegram_webhook:
 telegram_webhook_alt:
     path: /telegram/webhook
     controller: App\Controller\TelegramWebhookController::handle
-    methods: [POST]
+    methods: [POST, GET]
