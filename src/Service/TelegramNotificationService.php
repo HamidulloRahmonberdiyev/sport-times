@@ -114,13 +114,14 @@ final class TelegramNotificationService
     {
         $home = $g->getHomeClub()->getDisplayName();
         $away = $g->getAwayClub()->getDisplayName();
-        $league = $g->getCompetition()->getDisplayName();
+        $league = $g->getCompetition()->getNameOriginal();
         $time = $g->getMatchAtUz() !== null
             ? $g->getMatchAtUz()->format('H:i')
             : $g->getMatchAt()->setTimezone($tz)->format('H:i');
+        $timeBlue = '<a href="tg://time">'.$time.'</a>';
 
         return "⏰ <b>Uchrashuv boshlanishiga 1 soat qoldi</b>\n\n"
             . "▸ {$home} — {$away}\n"
-            . "🕐 <code>{$time}</code> · {$league}";
+            . "🕐 <b>{$timeBlue}</b> · {$league}";
     }
 }

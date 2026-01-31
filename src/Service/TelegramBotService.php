@@ -269,7 +269,7 @@ final class TelegramBotService
 
     private function getWelcomeMessage(): string
     {
-        return "🏟 <b>TOP-5 LIGA + UCL</b>\n\n"
+        return "🏟 <b>TOP-5 LIGA + Chempionlar Ligasi</b>\n\n"
             . "Vaqtlar: <b>O'zbekiston vaqti</b> (Toshkent)\n\n"
             . "• <b>📅 Bugun</b> / <b>📅 Ertaga</b> yoki sanani tanlang\n"
             . "• <b>Komanda nomi</b> — so'nggi 10 o'yin (Barselona, Liverpool)";
@@ -354,7 +354,7 @@ final class TelegramBotService
             $home = $g->getHomeClub()->getDisplayName();
             $away = $g->getAwayClub()->getDisplayName();
             $timeBlue = '<a href="tg://time">'.$time.'</a>';
-            $lines[] = "▸ <code>{$dateStr}</code> <b>{$timeBlue}</b>  {$home} — {$away}  {$status}{$league}";
+            $lines[] = "▸ <code>{$dateStr}</code> <b>{$timeBlue}</b>  {$home} — {$away}  {$status} {$league}";
         }
         $lines[] = "";
         $lines[] = "━━━━━━━━━━━━━━━━━━━━";
@@ -414,7 +414,7 @@ final class TelegramBotService
                 $home = $g->getHomeClub()->getDisplayName();
                 $away = $g->getAwayClub()->getDisplayName();
                 $timeBlue = '<a href="tg://time">'.$time.'</a>';
-                $lines[] = "  🕐 {$timeBlue}  {$home} — {$away}  {$status}";
+                $lines[] = "  🕐 <b>{$timeBlue}</b>  {$home} — {$away}  {$status}";
             }
             $lines[] = "";
         }
@@ -441,7 +441,7 @@ final class TelegramBotService
         return match (mb_strtoupper($s)) {
             'FT' => '✅',
             'NS', 'TBD' => '',
-            'LIVE', '1H', '2H', 'HT' => '🔴 LIVE',
+            'LIVE', '1H', '2H', 'HT' => '<b>🔴 LIVE</b>',
             'PST', 'CANC' => '🚫',
             default => $s ? " ({$s})" : '',
         };
