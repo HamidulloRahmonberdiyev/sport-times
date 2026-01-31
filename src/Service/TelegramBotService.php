@@ -389,61 +389,79 @@ final class TelegramBotService
     }
 
     private function fetchAndFormatEvents(\DateTimeInterface $date): string
-    {
-        $games = $this->gameRepo->findByDate($date);
+{
+    $games = $this->gameRepo->findByDate($date);
 
-        $uzMonths = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
-        $dateStr = $date->format('j') . '-' . $uzMonths[(int) $date->format('n') - 1] . ' ' . $date->format('Y');
-        if (0 === \count($games)) {
-            return "━━━━━━━━━━━━━━━━━━━━\n"
-                . "🏟 <b>TOP-5 LIGA + UCL</b>\n"
-                . "📅 {$dateStr}\n"
-                . "⏰ O'zbekiston vaqti\n"
-                . "━━━━━━━━━━━━━━━━━━━━\n\n"
-                . "Bu sanada o'yinlar topilmadi.";
-        }
+    $uzMonths = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
+    $dateStr = $date->format('j') . '-' . $uzMonths[(int) $date->format('n') - 1] . ' ' . $date->format('Y');
 
-        $byLeague = [];
-        $tz = new \DateTimeZone('Asia/Tashkent');
-        foreach ($games as $g) {
-            $ln = $g->getCompetition()->getDisplayName() ?: '—';
-            $byLeague[$ln][] = $g;
-        }
-
-        $lines = [
+    if (\count($games) === 0) {
+        return implode("\n", [
             "━━━━━━━━━━━━━━━━━━━━",
             "🏟 <b>TOP-5 LIGA + UCL</b>",
             "📅 {$dateStr}",
-            "⏰ O'zbekiston vaqti (Toshkent)",
+            "⏰ O'zbekiston vaqti",
             "━━━━━━━━━━━━━━━━━━━━",
             "",
-        ];
-        foreach ($byLeague as $leagueName => $leagueGames) {
-            $lines[] = "▸ <b>{$leagueName}</b>";
-            $lines[] = "──────────────────";
-            foreach ($leagueGames as $g) {
-                $time = $this->formatTime(
-                    $g->getMatchAtUz()?->format('H:i') ?? $g->getMatchAt()->setTimezone($tz)->format('H:i')
-                );
-                $sh = $g->getHomeScore();
-                $sa = $g->getAwayScore();
-                $score = (null !== $sh && null !== $sa) ? "  <b>({$sh}:{$sa})</b> " : "  — ";
-                $status = $this->formatStatus($g->getStatus());
-                $home = $g->getHomeClub()->getDisplayName();
-                $away = $g->getAwayClub()->getDisplayName();
-                $timeBlue = '<a href="tg://time">'.$time.'</a>';
-                $lines[] = "  🕐 <b>{$timeBlue}</b>  {$home} — {$away}  {$status}";
-            }
-            $lines[] = "";
-        }
-        $lines[] = "━━━━━━━━━━━━━━━━━━━━";
-
-        $out = implode("\n", $lines);
-        if (mb_strlen($out) > 4000) {
-            $out = mb_substr($out, 0, 3997) . '…';
-        }
-        return $out;
+            "❌ Bu sanada o‘yinlar topilmadi.",
+        ]);
     }
+
+    // Guruhlash: Liga bo‘yicha
+    $byLeague = [];
+    $tz = new \DateTimeZone('Asia/Tashkent');
+    foreach ($games as $g) {
+        $league = $g->getCompetition()->getDisplayName() ?: '—';
+        $byLeague[$league][] = $g;
+    }
+
+    $lines = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "🏟 <b>TOP-5 LIGA + UCL</b>",
+        "📅 {$dateStr}",
+        "⏰ O'zbekiston vaqti (Toshkent)",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "",
+    ];
+
+    foreach ($byLeague as $leagueName => $leagueGames) {
+        $lines[] = "🏆 <b>{$leagueName}</b>";
+        $lines[] = "──────────────────";
+
+        foreach ($leagueGames as $g) {
+            $dt = $g->getMatchAtUz() ?? $g->getMatchAt()->setTimezone($tz);
+            $time = $this->formatTime($dt->format('H:i'));
+
+            // 🔵 ko‘k vaqt
+            $timeBlue = '<a href="tg://time">' . $time . '</a>';
+
+            $home = $g->getHomeClub()->getDisplayName();
+            $away = $g->getAwayClub()->getDisplayName();
+
+            $sh = $g->getHomeScore();
+            $sa = $g->getAwayScore();
+            $score = (null !== $sh && null !== $sa)
+                ? " <b>{$sh}:{$sa}</b>"
+                : "";
+
+            $status = $this->formatStatus($g->getStatus());
+
+            $lines[] = "▸ ⏱ {$timeBlue}   ⚽ <b>{$home}</b> — <b>{$away}</b>{$score} {$status}";
+        }
+
+        $lines[] = "";
+    }
+
+    $lines[] = "━━━━━━━━━━━━━━━━━━━━";
+
+    $out = implode("\n", $lines);
+
+    if (mb_strlen($out) > 4000) {
+        $out = mb_substr($out, 0, 3997) . '…';
+    }
+
+    return $out;
+}
 
     private function formatTime(string $strTime): string
     {
