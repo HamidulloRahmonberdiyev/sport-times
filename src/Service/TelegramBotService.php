@@ -333,9 +333,10 @@ final class TelegramBotService
         $tz = new \DateTimeZone('Asia/Tashkent');
         $lines = [
             "━━━━━━━━━━━━━━━━━━━━",
-            "⚽ <b>SO'NGGI 10 O'YIN</b>",
+            "⚽ <b>SO'NGGI O'YINLAR</b>",
+
             "▸ <i>{$q}</i>",
-            "⏰ O'zbekiston vaqti",
+            "⏰ Toshkent vaqti",
             "━━━━━━━━━━━━━━━━━━━━",
             "",
         ];
@@ -352,7 +353,8 @@ final class TelegramBotService
             $league = $g->getCompetition()->getDisplayName() !== '' ? " • {$g->getCompetition()->getDisplayName()}" : '';
             $home = $g->getHomeClub()->getDisplayName();
             $away = $g->getAwayClub()->getDisplayName();
-            $lines[] = "▸ <code>{$dateStr}</code> <code>{$time}</code>  {$home} — {$away}{$score}{$status}{$league}";
+            $timeBlue = '<a href="tg://time">'.$time.'</a>';
+            $lines[] = "▸ <code>{$dateStr}</code> <b>{$timeBlue}</b>  {$home} — {$away}  {$status}{$league}";
         }
         $lines[] = "";
         $lines[] = "━━━━━━━━━━━━━━━━━━━━";
@@ -411,7 +413,8 @@ final class TelegramBotService
                 $status = $this->formatStatus($g->getStatus());
                 $home = $g->getHomeClub()->getDisplayName();
                 $away = $g->getAwayClub()->getDisplayName();
-                $lines[] = "  🕐 <code>{$time}</code>  {$home} — {$away}  {$status}";
+                $timeBlue = '<a href="tg://time">'.$time.'</a>';
+                $lines[] = "  🕐 {$timeBlue}  {$home} — {$away}  {$status}";
             }
             $lines[] = "";
         }
@@ -438,7 +441,7 @@ final class TelegramBotService
         return match (mb_strtoupper($s)) {
             'FT' => '✅',
             'NS', 'TBD' => '',
-            'LIVE', '1H', '2H', 'HT' => '🔴',
+            'LIVE', '1H', '2H', 'HT' => '🔴 LIVE',
             'PST', 'CANC' => '🚫',
             default => $s ? " ({$s})" : '',
         };
