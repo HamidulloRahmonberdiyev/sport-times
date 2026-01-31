@@ -349,7 +349,7 @@ final class TelegramBotService
             $status = $this->formatStatus($g->getStatus());
             $dt = $g->getMatchAtUz() ?? $g->getMatchAt()->setTimezone($tz);
             $dateStr = $dt->format('d.m.Y');
-            $league = $g->getCompetition()->getNameOriginal() !== '' ? " • {$g->getCompetition()->getNameOriginal()}" : '';
+            $league = $g->getCompetition()->getDisplayName() !== '' ? " • {$g->getCompetition()->getDisplayName()}" : '';
             $home = $g->getHomeClub()->getDisplayName();
             $away = $g->getAwayClub()->getDisplayName();
             $lines[] = "▸ <code>{$dateStr}</code> <code>{$time}</code>  {$home} — {$away}{$score}{$status}{$league}";
@@ -386,7 +386,7 @@ final class TelegramBotService
         $byLeague = [];
         $tz = new \DateTimeZone('Asia/Tashkent');
         foreach ($games as $g) {
-            $ln = $g->getCompetition()->getNameOriginal() ?: '—';
+            $ln = $g->getCompetition()->getDisplayName() ?: '—';
             $byLeague[$ln][] = $g;
         }
 

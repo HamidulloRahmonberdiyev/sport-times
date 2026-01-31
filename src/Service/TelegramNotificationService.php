@@ -114,7 +114,7 @@ final class TelegramNotificationService
     {
         $home = $g->getHomeClub()->getDisplayName();
         $away = $g->getAwayClub()->getDisplayName();
-        $league = $g->getCompetition()->getNameOriginal();
+        $league = $g->getCompetition()->getDisplayName();
         $time = $g->getMatchAtUz() !== null
             ? $g->getMatchAtUz()->format('H:i')
             : $g->getMatchAt()->setTimezone($tz)->format('H:i');

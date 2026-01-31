@@ -145,11 +145,25 @@ final class SyncWeekMatchesService
         return ['created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'errors' => $errors];
     }
 
+    /** Chempionat nomi (asl) => o'zbekcha. */
+    private const COMPETITION_NAME_UZ = [
+        'premier league' => 'Angliya Premer Ligasi',
+        'laliga' => 'La Liga',
+        'la liga' => 'La Liga',
+        'primera división' => 'La Liga',
+        'bundesliga' => 'Bundesliga',
+        'serie a' => 'Italiya A seriyasi',
+        'ligue 1' => 'Fransiya Liga 1',
+        'uefa champions league' => 'UEFA Chempionlar Ligasi',
+        'champions league' => 'UEFA Chempionlar Ligasi',
+    ];
+
     private function getOrCreateCompetition(string $externalId, string $code, string $nameOriginal): Competition
     {
         if ($externalId === '') {
             $externalId = 'code_' . ($code !== '' ? $code : 'unknown');
         }
+        $nameUz = $this->toCompetitionUz($nameOriginal);
         if (isset($this->competitionCache[$externalId])) {
             $c = $this->competitionCache[$externalId];
             if ($c->getCode() !== $code) {
@@ -157,6 +171,9 @@ final class SyncWeekMatchesService
             }
             if ($c->getNameOriginal() !== $nameOriginal) {
                 $c->setNameOriginal($nameOriginal);
+            }
+            if ($nameUz !== null && $c->getNameUz() !== $nameUz) {
+                $c->setNameUz($nameUz);
             }
             return $c;
         }
@@ -169,15 +186,25 @@ final class SyncWeekMatchesService
             if ($c->getNameOriginal() !== $nameOriginal) {
                 $c->setNameOriginal($nameOriginal);
             }
+            if ($nameUz !== null && $c->getNameUz() !== $nameUz) {
+                $c->setNameUz($nameUz);
+            }
             return $c;
         }
         $c = new Competition();
         $c->setExternalId($externalId);
         $c->setCode($code);
         $c->setNameOriginal($nameOriginal);
+        $c->setNameUz($nameUz);
         $this->competitionRepo->persist($c);
         $this->competitionCache[$externalId] = $c;
         return $c;
+    }
+
+    private function toCompetitionUz(string $nameOriginal): ?string
+    {
+        $key = mb_strtolower(trim($nameOriginal));
+        return self::COMPETITION_NAME_UZ[$key] ?? null;
     }
 
     private function getOrCreateClub(string $externalId, string $nameOriginal): ?Club

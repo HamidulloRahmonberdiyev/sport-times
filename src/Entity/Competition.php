@@ -95,6 +95,12 @@ class Competition
         return $this->nameUz;
     }
 
+    /** Ko'rsatish uchun: o'zbekcha bo'lsa o'zbekcha, aks holda asl. */
+    public function getDisplayName(): string
+    {
+        return $this->nameUz ?? $this->nameOriginal;
+    }
+
     public function setNameUz(?string $nameUz): self
     {
         $this->nameUz = $nameUz;
