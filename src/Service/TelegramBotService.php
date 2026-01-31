@@ -329,40 +329,58 @@ final class TelegramBotService
      */
     private function formatTeamMatches(array $games, string $teamQuery): string
     {
-        $q = str_replace(['<', '>'], '', $teamQuery);
-        $tz = new \DateTimeZone('Asia/Tashkent');
-        $lines = [
-            "━━━━━━━━━━━━━━━━━━━━",
-            "⚽ <b>SO'NGGI O'YINLAR</b>",
+    $q = str_replace(['<', '>'], '', $teamQuery);
+    $tz = new \DateTimeZone('Asia/Tashkent');
 
-            "▸ <i>{$q}</i>",
-            "⏰ Toshkent vaqti",
-            "━━━━━━━━━━━━━━━━━━━━",
-            "",
-        ];
-        foreach ($games as $g) {
-            $time = $this->formatTime(
-                $g->getMatchAtUz()?->format('H:i') ?? $g->getMatchAt()->setTimezone($tz)->format('H:i')
-            );
-            $sh = $g->getHomeScore();
-            $sa = $g->getAwayScore();
-            $score = (null !== $sh && null !== $sa) ? " <b>({$sh}:{$sa})</b> " : " — ";
-            $status = $this->formatStatus($g->getStatus());
-            $dt = $g->getMatchAtUz() ?? $g->getMatchAt()->setTimezone($tz);
-            $dateStr = $dt->format('d.m.Y');
-            $league = $g->getCompetition()->getDisplayName() !== '' ? " • {$g->getCompetition()->getDisplayName()}" : '';
-            $home = $g->getHomeClub()->getDisplayName();
-            $away = $g->getAwayClub()->getDisplayName();
-            $timeBlue = '<a href="tg://time">'.$time.'</a>';
-            $lines[] = "▸ <code>{$dateStr}</code> <b>{$timeBlue}</b>  {$home} — {$away}  {$status} {$league}";
+    $lines = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        "⚽ <b>SO‘NGGI O‘YINLAR</b>",
+        "🏷 <i>{$q}</i>",
+        "⏰ Toshkent vaqti",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "",
+    ];
+
+    foreach ($games as $g) {
+        $dt = $g->getMatchAtUz() ?? $g->getMatchAt()->setTimezone($tz);
+
+        $dateStr = $dt->format('d.m.Y');
+        $time = $this->formatTime($dt->format('H:i'));
+
+        // 🔵 ko‘k vaqt
+        $timeBlue = '<a href="tg://time">' . $time . '</a>';
+
+        $home = $g->getHomeClub()->getDisplayName();
+        $away = $g->getAwayClub()->getDisplayName();
+
+        $sh = $g->getHomeScore();
+        $sa = $g->getAwayScore();
+        $score = (null !== $sh && null !== $sa)
+            ? " <b>{$sh}:{$sa}</b>"
+            : "";
+
+        $status = $this->formatStatus($g->getStatus());
+
+        $league = $g->getCompetition()->getDisplayName();
+        $leagueLine = $league !== '' ? "   🏆 <i>{$league}</i>" : "";
+
+        $lines[] = "▸ 📅 <code>{$dateStr}</code>   ⏱ {$timeBlue}";
+        $lines[] = "   ⚽ <b>{$home}</b> — <b>{$away}</b>{$score} {$status}";
+        if ($leagueLine) {
+            $lines[] = $leagueLine;
         }
         $lines[] = "";
-        $lines[] = "━━━━━━━━━━━━━━━━━━━━";
-        $out = implode("\n", $lines);
-        if (mb_strlen($out) > 4000) {
-            $out = mb_substr($out, 0, 3997) . '…';
-        }
-        return $out;
+    }
+
+    $lines[] = "━━━━━━━━━━━━━━━━━━━━";
+
+    $out = implode("\n", $lines);
+
+    if (mb_strlen($out) > 4000) {
+        $out = mb_substr($out, 0, 3997) . '…';
+    }
+
+    return $out;
     }
 
     public function formatEventsForDate(\DateTimeInterface $date): string
